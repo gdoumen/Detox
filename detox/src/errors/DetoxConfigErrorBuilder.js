@@ -196,10 +196,6 @@ You should create a dictionary of device configurations in Detox config, e.g.:
     // });
   }
 
-  cantFindAppConfig() {
-    return new TodoError('cantFindAppConfig', arguments);
-  }
-
   missingAppBinaryPath() {
     return new TodoError('missingAppBinaryPath', arguments);
   }
@@ -226,10 +222,6 @@ You should create a dictionary of device configurations in Detox config, e.g.:
 
   multipleAppsConfigShouldBeArray() {
     return new TodoError('multipleAppsConfigShouldBeArray', arguments);
-  }
-
-  missingBinaryPath() {
-    return new TodoError('missingBinaryPath', arguments);
   }
 
   missingDeviceProperty(deviceAlias, expectedProperties) {
