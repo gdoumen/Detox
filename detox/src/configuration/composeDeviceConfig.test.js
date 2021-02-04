@@ -14,7 +14,6 @@ describe('composeDeviceConfig', () => {
   let errorBuilder;
 
   beforeEach(() => {
-    errorBuilder = new DetoxConfigErrorBuilder();
     composeDeviceConfig = require('./composeDeviceConfig');
     cliConfig = {};
     localConfig = {};
@@ -24,6 +23,10 @@ describe('composeDeviceConfig', () => {
         someConfig: localConfig,
       },
     }
+
+    errorBuilder = new DetoxConfigErrorBuilder()
+      .setDetoxConfig(globalConfig)
+      .setConfigurationName('someConfig');
   });
 
   const compose = () => composeDeviceConfig({
@@ -153,21 +156,21 @@ describe('composeDeviceConfig', () => {
     describe('aliased configuration', () => {
       it('should throw if devices are not declared', () => {
         localConfig.device = 'someDevice';
-        expect(compose).toThrow(errorBuilder.cantFindDeviceConfig());
+        expect(compose).toThrow(errorBuilder.thereAreNoDeviceConfigs('someDevice'));
       });
 
       it('should throw if device config is not found (alias)', () => {
         localConfig.device = 'someDevice';
         globalConfig.devices = { otherDevice: iosSimulatorWithShorthandQuery };
 
-        expect(compose).toThrow(errorBuilder.cantFindDeviceConfig());
+        expect(compose).toThrow(errorBuilder.cantResolveDeviceAlias('someDevice'));
       });
 
       it('should throw if device config is not found (inline)', () => {
         delete localConfig.device;
         globalConfig.devices = { otherDevice: iosSimulatorWithShorthandQuery };
 
-        expect(compose).toThrow(errorBuilder.cantFindDeviceConfig());
+        expect(compose).toThrow(errorBuilder.deviceConfigIsUndefined());
       });
     });
 
@@ -181,27 +184,33 @@ describe('composeDeviceConfig', () => {
         localConfig.device = 'someDevice';
         globalConfig.devices = { someDevice: { } };
 
-        expect(compose).toThrow(errorBuilder.missingDeviceType());
+        expect(compose).toThrow(errorBuilder.missingDeviceType('someDevice'));
       });
 
       it('should throw if the inline device config is empty', () => {
-        localConfig.type = 'ios.simulator';
+        localConfig.type = 'android.emulator';
         localConfig.device = {};
 
-        expect(compose).toThrow(errorBuilder.missingDeviceProperty());
+        expect(compose).toThrow(errorBuilder.missingDeviceProperty(undefined, [
+          'avdName'
+        ]));
       });
 
       it('should throw if the aliased device config is empty', () => {
         localConfig.device = 'someDevice';
         globalConfig.devices = { someDevice: { type: 'ios.simulator' } };
 
-        expect(compose).toThrow(errorBuilder.missingDeviceProperty());
+        expect(compose).toThrow(errorBuilder.missingDeviceProperty('someDevice', [
+          'type',
+          'name',
+          'id',
+        ]));
       });
     });
 
     describe('missing device matcher properties', () => {
       it.each([
-        [['id', 'type', 'name', 'os'], 'ios.simulator'],
+        [['type', 'name', 'id'], 'ios.simulator'],
         [['adbName'], 'android.attached'],
         [['avdName'], 'android.emulator'],
         [['recipeUUID', 'recipeName'], 'android.genycloud'],
@@ -213,7 +222,7 @@ describe('composeDeviceConfig', () => {
           }
         };
 
-        expect(compose).toThrowError(errorBuilder.missingDeviceMatcherProperties(expectedProps));
+        expect(compose).toThrowError(errorBuilder.missingDeviceMatcherProperties(undefined, expectedProps));
 
         localConfig.device.device[_.sample(expectedProps)] = 'someValue';
         expect(compose).not.toThrowError();

@@ -1,4 +1,5 @@
 const DetoxConfigErrorBuilder = require('../errors/DetoxConfigErrorBuilder');
+const { apkWithBinary, androidEmulator } = require('./configurations.mock');
 
 describe('selectConfiguration', () => {
   let selectConfiguration;
@@ -35,12 +36,12 @@ describe('selectConfiguration', () => {
   });
 
   it('should return the name of a single configuration', () => {
-    globalConfig.configurations = { single: {} };
+    globalConfig.configurations = { single: { ...apkWithBinary, ...androidEmulator } };
     expect(select()).toBe('single');
   });
 
   it('should throw if a configuration with the specified name does not exist', () => {
-    globalConfig.configurations = { single: {} };
+    globalConfig.configurations = { single: { ...apkWithBinary, ...androidEmulator } };
     globalConfig.selectedConfiguration = 'double';
 
     expect(select).toThrow(); // generating a correct error expectation in errorBuilder
@@ -50,17 +51,31 @@ describe('selectConfiguration', () => {
     expect(errorBuilder.setConfigurationName).toHaveBeenCalledWith('double');
   });
 
+  it('should throw if a configuration with the specified name is empty ', () => {
+    globalConfig.configurations = { single: {} };
+    globalConfig.selectedConfiguration = 'single';
+
+    expect(select).toThrow(); // generating a correct error expectation in errorBuilder
+
+    jest.spyOn(errorBuilder, 'setConfigurationName');
+    expect(select).toThrow(errorBuilder.configurationShouldNotBeEmpty());
+    expect(errorBuilder.setConfigurationName).toHaveBeenCalledWith('single');
+  });
+
   it('should throw if there is more than 1 configuration, and no one is specified', () => {
     configLocation = '';
-    globalConfig.configurations = { config1: {}, config2: {} };
+    globalConfig.configurations = {
+      config1: { ...apkWithBinary, ...androidEmulator },
+      config2: { ...apkWithBinary, ...androidEmulator }
+    };
     expect(select).toThrow(errorBuilder.cantChooseConfiguration());
   });
 
   describe('priority', () => {
     beforeEach(() => {
       globalConfig.configurations = {
-        cli: {},
-        config: {},
+        cli: { type: 'ios.simulator' },
+        config: { type: 'android.emulator' },
       };
     });
 

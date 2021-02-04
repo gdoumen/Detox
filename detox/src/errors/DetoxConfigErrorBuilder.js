@@ -7,6 +7,8 @@ class TodoError extends Error {
   }
 }
 
+const J = s => JSON.stringify(s);
+
 class DetoxConfigErrorBuilder {
   constructor() {
     this.setDetoxConfigPath();
@@ -27,6 +29,18 @@ class DetoxConfigErrorBuilder {
   setConfigurationName(configurationName) {
     this.configurationName = configurationName || '';
     return this;
+  }
+
+  get selectedConfiguration() {
+    return _.get(this.contents, ['configurations', this.configurationName]);
+  }
+
+  getSelectedDeviceConfig(alias) {
+    if (alias) {
+      return this.contents.devices[alias];
+    } else {
+      return this.selectedConfiguration;
+    }
   }
 
   noConfigurationSpecified() {
@@ -55,7 +69,7 @@ class DetoxConfigErrorBuilder {
   noConfigurationsInside() {
     return new DetoxConfigError({
       message: `There are no configurations in the given Detox config.`,
-      hint: this.filepath && `Examine the config at: ${this.filepath}`,
+      hint: this.filepath && `Examine the config${_atPath(this.filepath)}`,
       debugInfo: {
         configurations: undefined,
         ...this.contents,
@@ -77,23 +91,75 @@ class DetoxConfigErrorBuilder {
     const configurations = this.contents.configurations;
 
     return new DetoxConfigError({
-      message: `Failed to find a configuration named "${this.configurationName}" in Detox config${_atPath(this.filepath)}`,
+      message: `Failed to find a configuration named ${J(this.configurationName)} in Detox config${_atPath(this.filepath)}`,
       hint: 'Below are the configurations Detox was able to find:\n' + hintConfigurations(configurations),
     });
   }
 
-  missingDeviceType() {
-    return new TodoError('missingDeviceType', arguments);
+  configurationShouldNotBeEmpty() {
+    const name = this.configurationName;
+    const configurations = this.contents.configurations;
+
+    return new DetoxConfigError({
+      message: `Cannot use an empty configuration ${J(name)}.`,
+      hint: `A valid configuration should have "device" and "app" properties defined.\nExamine your Detox config${_atPath(this.filepath)}`,
+      debugInfo: {
+        configurations: {
+          [name]: configurations[name],
+          ...configurations,
+        }
+      },
+      inspectOptions: { depth: 1 }
+    });
   }
 
-  missingConfigurationType() {
+  thereAreNoDeviceConfigs(deviceAlias) {
+    const hint = `\
+You should create a dictionary of device configurations in Detox config, e.g.:
+{
+  "devices": {
+*-> ${J(deviceAlias)}: {
+|     "type": "ios.simulator", // or "android.emulator", or etc...
+|     "device": { "type": "iPhone 12" }, // or e.g.: { "avdName": "Pixel_API_29" }
+|   }
+| },
+| "configurations": {
+|   ${J(this.configurationName)}: {
+*---- "device": ${J(deviceAlias)},
+      ...
+    }
+  }
+}\n`;
+
     return new DetoxConfigError({
-      message:
-        `Missing "type" inside detox.configurations["${this.configurationName}"].\n` +
-        `Usually, "type" property should hold the device type to test on (e.g. "ios.simulator" or "android.emulator").`,
-      hint: `Check that in your Detox config${_atPath(this.filepath)}`,
+      message: `Cannot use aliases since there is no "devices" config in Detox config${_atPath(this.filepath)}`,
+      hint,
+    });
+  }
+
+  cantResolveDeviceAlias(alias) {
+    return new DetoxConfigError({
+      message: `Failed to find a device config ${J(alias)} in the "devices" dictionary of Detox config${_atPath(this.filepath)}`,
+      hint: 'Below are the device configurations Detox was able to find:\n' + hintConfigurations(this.contents.devices)
+    });
+  }
+
+  deviceConfigIsUndefined() {
+    return new DetoxConfigError({
+      message: `Failed to find a "device" config in the selected ${J(this.configurationName)} configuration:`,
+      hint: `There should be an inlined object or an alias to the device config.\nExamine your Detox config${_atPath(this.filepath)}`,
       debugInfo: this._focusOnConfiguration(),
-      inspectOptions: { depth: 2 },
+      inspectOptions: { depth: 2 }
+    });
+  }
+
+  missingDeviceType(deviceAlias) {
+    return new DetoxConfigError({
+      message: `Missing "type" inside the device configuration.`,
+      hint: `Usually, "type" property should hold the device type to test on (e.g. "ios.simulator" or "android.emulator").\n` +
+            `Check that in your Detox config${_atPath(this.filepath)}`,
+      debugInfo: this._focusOnDeviceConfig(deviceAlias),
+      inspectOptions: { depth: 3 },
     });
   }
 
@@ -128,14 +194,6 @@ class DetoxConfigErrorBuilder {
     //   debugInfo: this._focusOnConfiguration(),
     //   inspectOptions: { depth: 2 },
     // });
-  }
-
-  cantFindConfiguration() {
-    return new TodoError('cantFindConfiguration', arguments);
-  }
-
-  cantFindDeviceConfig() {
-    return new TodoError('cantFindDeviceConfig', arguments);
   }
 
   cantFindAppConfig() {
@@ -174,13 +232,18 @@ class DetoxConfigErrorBuilder {
     return new TodoError('missingBinaryPath', arguments);
   }
 
-  missingDeviceProperty() {
+  missingDeviceProperty(deviceAlias, expectedProperties) {
+    const { type } = this.getSelectedDeviceConfig(deviceAlias);
     return new DetoxConfigError({
-      message: `Missing or empty "device" property inside detox.configurations["${this.configurationName}"].\n` +
-        `It should hold the device query to run on (e.g. { "type": "iPhone 11 Pro" }, { "avdName": "Nexus_5X_API_29" }).`,
-      hint: `Check that in your Detox config${_atPath(this.filepath)}`,
-      debugInfo: this._focusOnConfiguration(),
-      inspectOptions: { depth: 2 },
+      message: `Missing or empty "device" property inside the device config.`,
+      hint: `It should have the device query to run on, e.g.:\n
+{
+  "type": ${J(type)},
+  "device": ${expectedProperties.map(p => `{ ${J(p)}: ... }`).join('\n      // or ')}
+}
+Check that in your Detox config${_atPath(this.filepath)}`,
+      debugInfo: this._focusOnDeviceConfig(deviceAlias),
+      inspectOptions: { depth: 3 },
     });
   }
 
@@ -242,6 +305,20 @@ class DetoxConfigErrorBuilder {
     return {
       configurations: {
         [this.configurationName]: postProcess(configuration)
+      },
+    };
+  }
+
+  _focusOnDeviceConfig(deviceAlias) {
+    if (!deviceAlias) {
+      return this._focusOnConfiguration();
+    }
+
+    const { device } = this.selectedConfiguration;
+
+    return {
+      devices: {
+        [device]: this.contents.devices[device],
       },
     };
   }

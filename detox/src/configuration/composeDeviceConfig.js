@@ -52,25 +52,45 @@ function composeDeviceConfigFromAliased(opts) {
   const { errorBuilder, globalConfig, localConfig } = opts;
 
   /** @type {Detox.DetoxDeviceConfig} */
-  const deviceConfig = typeof localConfig.device === 'string'
-    ? (globalConfig.devices && globalConfig.devices[localConfig.device])
-    : localConfig.device;
+  let deviceConfig;
 
-  if (!deviceConfig) {
-    throw errorBuilder.cantFindDeviceConfig();
+  const isAliased = typeof localConfig.device === 'string';
+
+  if (isAliased) {
+    if (_.isEmpty(globalConfig.devices)) {
+      throw errorBuilder.thereAreNoDeviceConfigs(localConfig.device);
+    } else {
+      deviceConfig = globalConfig.devices[localConfig.device];
+    }
+
+    if (!deviceConfig) {
+      throw errorBuilder.cantResolveDeviceAlias(localConfig.device);
+    }
+  } else {
+    if (!localConfig.device) {
+      throw errorBuilder.deviceConfigIsUndefined();
+    }
+
+    deviceConfig = localConfig.device;
   }
 
-  validateDeviceConfig({ deviceConfig, errorBuilder });
+  validateDeviceConfig({
+    deviceConfig,
+    errorBuilder,
+    deviceAlias: isAliased ? localConfig.device : undefined
+  });
+
   return { ...deviceConfig };
 }
 
 /**
- * @param {DetoxConfigErrorBuilder} opts.errorBuilder
- * @param {Detox.DetoxDeviceConfig} opts.deviceConfig
+ * @param {DetoxConfigErrorBuilder} errorBuilder
+ * @param {Detox.DetoxDeviceConfig} deviceConfig
+ * @param {String | undefined} deviceAlias
  */
-function validateDeviceConfig({ deviceConfig, errorBuilder }) {
+function validateDeviceConfig({ deviceConfig, errorBuilder, deviceAlias }) {
   if (!deviceConfig.type) {
-    throw errorBuilder.missingDeviceType();
+    throw errorBuilder.missingDeviceType(deviceAlias);
   }
 
   if (_.isString(deviceConfig.device)) {
@@ -83,17 +103,17 @@ function validateDeviceConfig({ deviceConfig, errorBuilder }) {
   }
 
   if (_.isEmpty(deviceConfig.device)) {
-    throw errorBuilder.missingDeviceProperty();
+    throw errorBuilder.missingDeviceProperty(deviceAlias, expectedProperties);
   }
 
   if (!expectedProperties.some(prop => deviceConfig.device.hasOwnProperty(prop))) {
-    throw errorBuilder.missingDeviceMatcherProperties(expectedProperties);
+    throw errorBuilder.missingDeviceMatcherProperties(deviceAlias, expectedProperties);
   }
 }
 
 const EXPECTED_DEVICE_MATCHER_PROPS = {
   'ios.none': null,
-  'ios.simulator': ['id', 'type', 'name', 'os'],
+  'ios.simulator': ['type', 'name', 'id'],
   'android.attached': ['adbName'],
   'android.emulator': ['avdName'],
   'android.genycloud': ['recipeUUID', 'recipeName'],

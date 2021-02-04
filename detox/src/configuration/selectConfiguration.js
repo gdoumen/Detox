@@ -28,6 +28,10 @@ function selectConfiguration({ errorBuilder, globalConfig, cliConfig }) {
     throw errorBuilder.noConfigurationWithGivenName();
   }
 
+  if (_.isEmpty(configurations[configurationName])) {
+    throw errorBuilder.configurationShouldNotBeEmpty();
+  }
+
   return configurationName;
 }
 
