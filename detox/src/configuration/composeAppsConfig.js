@@ -176,18 +176,8 @@ function validateAppConfig({ appConfig, appPath, deviceConfig, errorBuilder }) {
     throw errorBuilder.missingAppBinaryPath(appPath);
   }
 
-  if (appConfig.launchArgs) {
-    if (!_.isObject(appConfig.launchArgs)) {
-      throw errorBuilder.malformedAppLaunchArgs(appPath);
-    }
-
-    const invalidLaunchArg = _.findKey(appConfig.launchArgs, (value) => {
-      return value != null && !_.isString(value);
-    });
-
-    if (invalidLaunchArg) {
-      throw errorBuilder.malformedAppLaunchArgsProperty([...appPath, 'launchArgs', invalidLaunchArg]);
-    }
+  if (appConfig.launchArgs && !_.isObject(appConfig.launchArgs)) {
+    throw errorBuilder.malformedAppLaunchArgs(appPath);
   }
 
   if (appConfig.utilBinaryPaths && !Array.isArray(appConfig.utilBinaryPaths)) {

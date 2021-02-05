@@ -121,22 +121,19 @@ describe('composeAppsConfig', () => {
         expect(compose).toThrowError(errorBuilder.malformedAppLaunchArgs(['configurations', configurationName]));
       });
 
-      it('when it has a nullish property, should omit it', () => {
+      it('when it is an object with nullish properties, it should omit them', () => {
         localConfig.launchArgs.nully = null;
         localConfig.launchArgs.undefiny = undefined;
-        localConfig.launchArgs.nonNully = 'proveYourself';
+        localConfig.launchArgs.aString = 'proveYourself';
+        localConfig.launchArgs.anObject = { a: 1 };
+        localConfig.launchArgs.anInteger = 2;
 
         expect(compose()[''].launchArgs).toEqual({
           hello: 'world',
-          nonNully: 'proveYourself',
+          aString: 'proveYourself',
+          anInteger: 2,
+          anObject: { a: 1 },
         });
-      });
-
-      it('when it has a non-nullish and non-string property', () => {
-        localConfig.launchArgs = { debugSomething: false };
-        expect(compose).toThrowError(errorBuilder.malformedAppLaunchArgsProperty([
-          'configurations', configurationName, 'launchArgs', 'debugSomething'
-        ]));
       });
     });
 

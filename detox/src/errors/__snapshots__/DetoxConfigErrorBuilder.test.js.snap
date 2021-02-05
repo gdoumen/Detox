@@ -188,13 +188,8 @@ exports[`DetoxConfigErrorBuilder .malformedAppLaunchArgs should create an error 
 {}]
 `;
 
-exports[`DetoxConfigErrorBuilder .malformedAppLaunchArgsProperty should create an error with specifying the exact launch arg 1`] = `
-[Error: TODO - malformedAppLaunchArgsProperty
-{"0":"invalidFalseProperty"}]
-`;
-
 exports[`DetoxConfigErrorBuilder .malformedUtilBinaryPaths should create an error with specifying the config name 1`] = `
-[Error: TODO - malformedAppLaunchArgsProperty
+[Error: TODO - malformedUtilBinaryPaths
 {}]
 `;
 
