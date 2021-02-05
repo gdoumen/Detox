@@ -5,6 +5,7 @@ describe('Device', () => {
   let fs;
   let DeviceDriverBase;
   let SimulatorDriver;
+  let DetoxRuntimeErrorBuilder;
   let emitter;
   let Device;
   let argparse;
@@ -33,6 +34,7 @@ describe('Device', () => {
     jest.mock('../utils/AsyncEmitter');
     const AsyncEmitter = require('../utils/AsyncEmitter');
     emitter = new AsyncEmitter({});
+    DetoxRuntimeErrorBuilder = require('../errors/DetoxRuntimeErrorBuilder');
 
     Device = require('./Device');
   });
@@ -90,12 +92,14 @@ describe('Device', () => {
   }
 
   function aDevice(overrides) {
+    const appsConfig = {};
     const device = new Device({
-      appsConfig: {},
+      appsConfig,
       behaviorConfig: {},
       deviceConfig: {},
       sessionConfig: {},
       deviceDriver: driverMock.driver,
+      runtimeErrorBuilder: new DetoxRuntimeErrorBuilder({ appsConfig }),
       emitter,
 
       ...overrides,

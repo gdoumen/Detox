@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const parse = require('yargs/yargs').Parser;
+const deviceAppTypes = require('./utils/deviceAppTypes');
 
 const CLI_PARSER_OPTIONS = {
   configuration: {
@@ -166,7 +167,7 @@ function overrideAppLaunchArgs(appsConfig, cliConfig) {
 
 function validateAppConfig({ appConfig, appPath, deviceConfig, errorBuilder }) {
   const deviceType = deviceConfig.type;
-  const allowedAppsTypes = DEVICE_TYPE_TO_APP_TYPE[deviceType];
+  const allowedAppsTypes = deviceAppTypes[deviceType];
 
   if (allowedAppsTypes && !allowedAppsTypes.includes(appConfig.type)) {
     throw errorBuilder.invalidAppType(appPath, deviceConfig);
@@ -184,13 +185,5 @@ function validateAppConfig({ appConfig, appPath, deviceConfig, errorBuilder }) {
     throw errorBuilder.malformedUtilBinaryPaths(appPath);
   }
 }
-
-const DEVICE_TYPE_TO_APP_TYPE = {
-  'ios.simulator': ['ios.app'],
-  'ios.none': ['ios.app'],
-  'android.attached': ['android.apk'],
-  'android.emulator': ['android.apk'],
-  'android.genycloud': ['android.apk'],
-};
 
 module.exports = composeAppsConfig;

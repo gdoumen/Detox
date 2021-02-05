@@ -101,7 +101,15 @@ declare global {
             sessionId?: string;
         }
 
-        type DetoxAppConfig = DetoxIosAppConfig | DetoxAndroidAppConfig;
+        type DetoxAppConfig = (DetoxIosAppConfig | DetoxAndroidAppConfig) & {
+            /**
+             * App name to use with device.selectApp(appName) calls.
+             * Can be omitted if you have a single app under the test.
+             *
+             * @see Device#selectApp
+             */
+            name?: string;
+        };
 
         type DetoxDeviceConfig = DetoxBuiltInDeviceConfig | DetoxCustomDriverConfig;
 
@@ -244,7 +252,7 @@ declare global {
         interface DetoxAliasedConfigurationSingleApp {
             type?: never;
             device: DetoxAliasedDevice;
-            app: DetoxAliasedApp;
+            app: string | DetoxAppConfig;
         }
 
         interface DetoxAliasedConfigurationMultiApps {
@@ -254,8 +262,6 @@ declare global {
         }
 
         type DetoxAliasedDevice = string | DetoxDeviceConfig;
-
-        type DetoxAliasedApp = string | DetoxAppConfig;
 
         // endregion DetoxConfig
 
@@ -328,6 +334,34 @@ declare global {
              * The value will be undefined until the device is properly prepared (i.e. in detox.init()).
              */
             name: string;
+
+            /**
+             * Select the current app (relevant only to multi-app configs) by its name.
+             * After execution, all app-specific device methods will target the selected app.
+             *
+             * @see DetoxAppConfig#name
+             * @example
+             * await device.selectApp('passenger');
+             * await device.launchApp(); // passenger
+             * // ... run tests for the passenger app
+             * await device.uninstallApp(); // passenger
+             * await device.selectApp('driver');
+             * await device.installApp(); // driver
+             * await device.launchApp(); // driver
+             * // ... run tests for the driver app
+             * await device.terminateApp(); // driver
+             */
+            selectApp(app: string): Promise<void>;
+
+            /**
+             * @protected
+             * Unselect the current app.
+             * After execution, all app-specific device methods will be throwing an error.
+             *
+             * @example
+             * await device.selectApp(null); // explicitly unselects any app
+             */
+             selectApp(app: null): Promise<void>;
 
             /**
              * Launch the app

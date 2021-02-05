@@ -10,8 +10,6 @@ FakeDevice.useRealConstructor = () => {
   });
 };
 
-FakeDevice.prototype._reinstallApps = Device.prototype._reinstallApps;
-
 FakeDevice.setInfiniteMethod = (methodName) => {
   FakeDevice.mockImplementationOnce(() => {
     const device = new FakeDevice();

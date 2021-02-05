@@ -11,12 +11,14 @@ class Device {
     deviceDriver,
     emitter,
     sessionConfig,
+    runtimeErrorBuilder,
   }) {
     this._appsConfig = appsConfig;
     this._behaviorConfig = behaviorConfig;
     this._deviceConfig = deviceConfig;
     this._sessionConfig = sessionConfig;
     this._emitter = emitter;
+    this._errorBuilder = runtimeErrorBuilder;
 
     this._currentApp = null;
     this._deviceId = undefined;
@@ -51,13 +53,15 @@ class Device {
     }
   }
 
-  async selectApp(appAliasOrConfig = '') {
-    const appConfig = typeof appAliasOrConfig === 'string'
-      ? this._appsConfig[appAliasOrConfig]
-      : appAliasOrConfig;
+  async selectApp(name) {
+    if (name == null) { // Internal use to unselect the app
+      this._currentApp = null;
+      return;
+    }
 
+    const appConfig = this._appsConfig[name];
     if (!appConfig) {
-      throw new Error('App not found');
+      throw this._errorBuilder.cantFindApp(name);
     }
 
     this._currentApp = {
@@ -251,8 +255,7 @@ class Device {
 
   _getCurrentApp() {
     if (!this._currentApp) {
-      // TODO: improve the error message
-      throw new Error('Please select the app!');
+      throw this._errorBuilder.appNotSelected();
     }
 
     return this._currentApp;
@@ -381,21 +384,6 @@ class Device {
   async _terminateApp(bundleId) {
     await this.deviceDriver.terminate(this._deviceId, bundleId);
     this._processes[bundleId] = undefined;
-  }
-
-  async _reinstallApps() {
-    const appNames = Object.keys(this._appsConfig);
-
-    for (const appName of appNames) {
-      await this.selectApp(appName)
-      await this.uninstallApp();
-      await this.installApp();
-      await this.installUtilBinaries();
-    }
-
-    if (appNames.length !== 1) {
-      this._currentApp = null;
-    }
   }
 }
 

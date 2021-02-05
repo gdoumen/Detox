@@ -164,9 +164,14 @@ describe('Detox', () => {
       it('should prepare the device', () =>
         expect(device().prepare).toHaveBeenCalled());
 
-      it('should reinstall the apps', () => {
+      it('should select and reinstall the app', () => {
+        expect(device().selectApp).toHaveBeenCalledWith(''); // '' is a default name for a single app
         expect(device().uninstallApp).toHaveBeenCalled();
         expect(device().installApp).toHaveBeenCalled();
+      });
+
+      it('should not unselect the app if it is the only one', () => {
+        expect(device().selectApp).not.toHaveBeenCalledWith(null);
       });
 
       it('should return itself', async () =>
@@ -180,6 +185,26 @@ describe('Detox', () => {
       const initPromise2 = detox.init();
 
       expect(initPromise1).toBe(initPromise2);
+    });
+
+    describe('with multiple apps', () => {
+      beforeEach(() => {
+        detoxConfig.appsConfig['extraApp'] = {
+          type: 'ios.app',
+          binaryPath: 'path/to/app',
+        };
+      });
+
+      beforeEach(init);
+
+      it('should unselect the selected device app', () => {
+        expect(detox.device.installApp).toHaveBeenCalledTimes(2);
+        expect(detox.device.selectApp).toHaveBeenCalledTimes(3);
+
+        expect(detox.device.selectApp.mock.calls[0]).toEqual(['']);
+        expect(detox.device.selectApp.mock.calls[1]).toEqual(['extraApp']);
+        expect(detox.device.selectApp.mock.calls[2]).toEqual([null]);
+      });
     });
 
     describe('with sessionConfig.autoStart undefined', () => {
