@@ -6,6 +6,7 @@ describe('Device', () => {
   let DeviceDriverBase;
   let SimulatorDriver;
   let DetoxRuntimeErrorBuilder;
+  let errorBuilder;
   let emitter;
   let Device;
   let argparse;
@@ -92,14 +93,16 @@ describe('Device', () => {
   }
 
   function aDevice(overrides) {
-    const appsConfig = {};
+    const appsConfig = overrides.appsConfig || {};
+    errorBuilder = new DetoxRuntimeErrorBuilder({ appsConfig });
+
     const device = new Device({
       appsConfig,
       behaviorConfig: {},
       deviceConfig: {},
       sessionConfig: {},
       deviceDriver: driverMock.driver,
-      runtimeErrorBuilder: new DetoxRuntimeErrorBuilder({ appsConfig }),
+      runtimeErrorBuilder: errorBuilder,
       emitter,
 
       ...overrides,
@@ -144,9 +147,81 @@ describe('Device', () => {
   });
 
   it('should return the device ID, as provided by acquireFreeDevice', async () => {
-    const device = await aValidDevice();
+    const device = await aValidUnpreparedDevice();
     await device.prepare();
     expect(device.id).toEqual('mockDeviceId');
+  });
+
+  describe('selectApp()', () => {
+    let device;
+
+    describe('when there is a single app', () => {
+      beforeEach(async () => {
+        device = await aValidUnpreparedDevice();
+        jest.spyOn(device, 'selectApp');
+        await device.prepare();
+      });
+
+      it(`should select the default app upon prepare()`, async () => {
+        expect(device.selectApp).toHaveBeenCalledWith('');
+      });
+
+      it(`should function as usual when the app is selected`, async () => {
+        await device.launchApp();
+        expect(driverMock.driver.launchApp).toHaveBeenCalled();
+      });
+
+      it(`should throw when the app has been unselected`, async () => {
+        await device.selectApp(null);
+        await expect(device.launchApp()).rejects.toThrowError(errorBuilder.appNotSelected());
+      });
+
+      it(`should throw on attempt to select a non-existent app`, async () => {
+        await expect(device.selectApp('nonExistent')).rejects.toThrowError();
+      });
+    })
+
+    describe('when there are multiple apps', () => {
+      beforeEach(async () => {
+        device = await aValidUnpreparedDevice({
+          appsConfig: {
+            withBinaryPath: {
+              binaryPath: 'path/to/app',
+            },
+            withBundleId: {
+              binaryPath: 'path/to/app2',
+              bundleId: 'com.app2'
+            },
+          },
+        });
+
+        jest.spyOn(device, 'selectApp');
+        driverMock.driver.getBundleIdFromBinary.mockReturnValue('com.app1');
+
+        await device.prepare();
+      });
+
+      it(`should not select the app at all`, async () => {
+        expect(device.selectApp).not.toHaveBeenCalled();
+      });
+
+      it(`upon select, it should infer bundleId if it is missing`, async () => {
+        await device.selectApp('withBinaryPath');
+        expect(driverMock.driver.getBundleIdFromBinary).toHaveBeenCalledWith('path/to/app')
+      });
+
+      it(`upon select, it should not infer bundleId if it is specified`, async () => {
+        await device.selectApp('withBundleId');
+        expect(driverMock.driver.getBundleIdFromBinary).not.toHaveBeenCalled();
+      });
+
+      it(`upon re-selecting the same app, it should not infer bundleId twice`, async () => {
+        await device.selectApp('withBinaryPath');
+        await device.selectApp('withBundleId');
+        await device.selectApp('withBinaryPath');
+        expect(driverMock.driver.getBundleIdFromBinary).toHaveBeenCalledTimes(1);
+      });
+    })
   });
 
   describe('re/launchApp()', () => {

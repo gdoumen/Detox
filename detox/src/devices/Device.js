@@ -64,10 +64,8 @@ class Device {
       throw this._errorBuilder.cantFindApp(name);
     }
 
-    this._currentApp = {
-      ...appConfig,
-      bundleId: appConfig.bundleId || await this.deviceDriver.getBundleIdFromBinary(appConfig.binaryPath),
-    };
+    this._currentApp = appConfig;
+    await this._inferBundleIdFromBinary();
   }
 
   async launchApp(params = {}, bundleId = this._bundleId) {
@@ -379,6 +377,14 @@ class Device {
   _prepareLaunchArgs(additionalLaunchArgs) {
     const launchArgs = _.merge(this._defaultLaunchArgs(), additionalLaunchArgs);
     return launchArgs;
+  }
+
+  async _inferBundleIdFromBinary() {
+    const { binaryPath, bundleId } = this._currentApp;
+
+    if (!bundleId) {
+      this._currentApp.bundleId = await this.deviceDriver.getBundleIdFromBinary(binaryPath);
+    }
   }
 
   async _terminateApp(bundleId) {
