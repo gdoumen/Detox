@@ -78,6 +78,7 @@ describe('composeAppsConfig', () => {
 
     it('should take it as-is for unknown device type', () => {
       deviceConfig.type = './customDriver';
+      localConfig = { ...deviceConfig };
       expect(compose()).toEqual({
         default: localConfig
       });
@@ -138,6 +139,10 @@ describe('composeAppsConfig', () => {
     });
 
     describe('.utilBinaryPaths', () => {
+      beforeEach(() => {
+        deviceConfig.type = 'android.emulator';
+      });
+
       it('should throw if util-binary paths are malformed', () => {
         localConfig.utilBinaryPaths = 'valid/path/not/in/array';
         expect(compose).toThrowError(
@@ -305,8 +310,16 @@ describe('composeAppsConfig', () => {
         }));
       });
 
-      test('app has no binaryPath', () => {
+      test.each([
+        ['ios.app', 'ios.none'],
+        ['ios.app', 'ios.simulator'],
+        ['android.apk', 'android.attached'],
+        ['android.apk', 'android.emulator'],
+        ['android.apk', 'android.genycloud'],
+      ])('known app (device type = %s) has no binaryPath', (appType, deviceType) => {
         delete globalConfig.apps.example1.binaryPath;
+        globalConfig.apps.example1.type = appType;
+        deviceConfig.type = deviceType;
         localConfig.app = 'example1';
 
         expect(compose).toThrowError(errorBuilder.missingAppBinaryPath(
@@ -328,15 +341,6 @@ describe('composeAppsConfig', () => {
         expect(compose).toThrowError(
           errorBuilder.invalidAppType(['apps', 'example1'], deviceConfig)
         );
-      });
-
-      test('app has no binaryPath', () => {
-        delete globalConfig.apps.example1.binaryPath;
-        localConfig.app = 'example1';
-
-        expect(compose).toThrowError(errorBuilder.missingAppBinaryPath(
-          ['apps', 'example1']
-        ));
       });
     });
   });

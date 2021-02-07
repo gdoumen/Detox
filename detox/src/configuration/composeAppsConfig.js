@@ -173,7 +173,7 @@ function validateAppConfig({ appConfig, appPath, deviceConfig, errorBuilder }) {
     throw errorBuilder.invalidAppType(appPath, deviceConfig);
   }
 
-  if (!appConfig.binaryPath) {
+  if (allowedAppsTypes && !appConfig.binaryPath) {
     throw errorBuilder.missingAppBinaryPath(appPath);
   }
 
