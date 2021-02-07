@@ -54,7 +54,11 @@ class Device {
   }
 
   async selectApp(name) {
-    if (name == null) { // Internal use to unselect the app
+    if (name === undefined) {
+      throw this._errorBuilder.cantSelectEmptyApp();
+    }
+
+    if (name === null) { // Internal use to unselect the app
       this._currentApp = null;
       return;
     }

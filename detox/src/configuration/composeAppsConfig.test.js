@@ -68,7 +68,7 @@ describe('composeAppsConfig', () => {
     ])('should infer type and app properties for %j', (deviceType, appType) => {
       deviceConfig.type = deviceType;
       expect(compose()).toEqual({
-        '': {
+        default: {
           ...localConfig,
           type: appType,
           device: undefined,
@@ -79,7 +79,7 @@ describe('composeAppsConfig', () => {
     it('should take it as-is for unknown device type', () => {
       deviceConfig.type = './customDriver';
       expect(compose()).toEqual({
-        '': localConfig
+        default: localConfig
       });
     });
 
@@ -88,7 +88,7 @@ describe('composeAppsConfig', () => {
       localConfig.testBinaryPath = 'somePath';
       localConfig.utilBinaryPaths = ['someOther'];
 
-      const appConfig = compose()[''];
+      const appConfig = compose().default;
       expect(appConfig.testBinaryPath).toBe(undefined);
       expect(appConfig.utilBinaryPaths).toBe(undefined);
     });
@@ -98,7 +98,7 @@ describe('composeAppsConfig', () => {
       localConfig.testBinaryPath = 'somePath';
       localConfig.utilBinaryPaths = ['someOther'];
 
-      const appConfig = compose()[''];
+      const appConfig = compose().default;
       expect(appConfig.testBinaryPath).toBe('somePath');
       expect(appConfig.utilBinaryPaths).toEqual(['someOther']);
     });
@@ -112,7 +112,7 @@ describe('composeAppsConfig', () => {
     ])('should ignore non-recognized properties for %j', (deviceType) => {
       deviceConfig.type = deviceType;
       localConfig.testBinaryPath2 = 'somePath';
-      expect(compose()[''].testBinaryPath2).toBe(undefined);
+      expect(compose().default.testBinaryPath2).toBe(undefined);
     });
 
     describe('.launchArgs', () => {
@@ -128,7 +128,7 @@ describe('composeAppsConfig', () => {
         localConfig.launchArgs.anObject = { a: 1 };
         localConfig.launchArgs.anInteger = 2;
 
-        expect(compose()[''].launchArgs).toEqual({
+        expect(compose().default.launchArgs).toEqual({
           hello: 'world',
           aString: 'proveYourself',
           anInteger: 2,
@@ -149,7 +149,7 @@ describe('composeAppsConfig', () => {
     describe('given an unknown device type', () => {
       it('should transfer the config as-is, for backward compatibility', () => {
         deviceConfig.type = './myDriver';
-        expect(compose()).toEqual({ '': localConfig });
+        expect(compose()).toEqual({ default: localConfig });
       });
     });
   });
@@ -170,7 +170,7 @@ describe('composeAppsConfig', () => {
 
       it('should resolve the alias and extract the app config', () => {
         expect(compose()).toEqual({
-          '': globalConfig.apps.example1
+          default: globalConfig.apps.example1
         });
       });
     });
@@ -182,7 +182,7 @@ describe('composeAppsConfig', () => {
 
       it('should resolve the alias and extract the app config', () => {
         expect(compose()).toEqual({
-          '': globalConfig.apps.example2,
+          default: globalConfig.apps.example2,
         });
       });
     });
@@ -287,7 +287,7 @@ describe('composeAppsConfig', () => {
         localConfig.apps = ['example1', 'example2'];
 
         expect(compose).toThrowError(errorBuilder.duplicateAppConfig({
-          appName: '',
+          appName: 'default',
           appPath: ['apps', 'example2'],
           preExistingAppPath: ['apps', 'example1'],
         }));

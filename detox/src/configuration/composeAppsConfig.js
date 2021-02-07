@@ -79,7 +79,7 @@ function composeAppsConfigFromPlain(opts) {
   });
 
   return {
-    '': _.omitBy(appConfig, _.isUndefined),
+    default: _.omitBy(appConfig, _.isUndefined),
   };
 }
 
@@ -124,7 +124,7 @@ function composeAppsConfigFromAliased(opts) {
       : maybeAppPath;
 
     const appConfig = _.get(globalConfig, appPath);
-    const appName = appConfig.name || '';
+    const appName = appConfig.name || 'default';
     appPathsMap.set(appConfig, appPath);
 
     validateAppConfig({

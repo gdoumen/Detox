@@ -44,8 +44,9 @@ class DetoxRuntimeErrorBuilder {
       message: `Can't find an app config with name ${J(attemptedName)}.`,
       hint: appCount < 2
         ? `Actually, you don't have multiple apps defined in your config.\n` +
-          `Hence, either you don't need to switch between apps, or your apps config is incomplete.`
-        : `Maybe you meant one of these?\n` + toStarlist(this.appsConfig),
+          `Hence, either you don't need to call device.selectApp(${J(attemptedName)}) at all,\n` +
+          `or, your apps config is missing that app. See the actual contents:`
+        : `Maybe you meant one of these app names?\n` + toStarlist(this.appsConfig),
       debugInfo: appCount < 2 ? this.appsConfig : undefined,
       inspectOptions: { depth: 2 },
     });

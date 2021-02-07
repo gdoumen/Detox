@@ -116,7 +116,7 @@ describe('Device', () => {
   function aValidUnpreparedDevice(overrides) {
     return aDevice(_.merge({
       appsConfig: {
-        '': configurationsMock.appWithRelativeBinaryPath,
+        default: configurationsMock.appWithRelativeBinaryPath,
       },
       deviceConfig: configurationsMock.iosSimulatorWithShorthandQuery,
       sessionConfig: configurationsMock.validSession,
@@ -163,7 +163,7 @@ describe('Device', () => {
       });
 
       it(`should select the default app upon prepare()`, async () => {
-        expect(device.selectApp).toHaveBeenCalledWith('');
+        expect(device.selectApp).toHaveBeenCalledWith('default');
       });
 
       it(`should function as usual when the app is selected`, async () => {
@@ -171,7 +171,11 @@ describe('Device', () => {
         expect(driverMock.driver.launchApp).toHaveBeenCalled();
       });
 
-      it(`should throw when the app has been unselected`, async () => {
+      it(`should throw on call without args`, async () => {
+        await expect(device.selectApp()).rejects.toThrowError(errorBuilder.cantSelectEmptyApp());
+      });
+
+      it(`should throw on app interactions with no selected app`, async () => {
         await device.selectApp(null);
         await expect(device.launchApp()).rejects.toThrowError(errorBuilder.appNotSelected());
       });
@@ -588,7 +592,7 @@ describe('Device', () => {
   describe('installBinary()', () => {
     it('should install the set of util binaries', async () => {
       const device = await aValidDevice({
-        appsConfig: { '': configurationsMock.apkWithBinary },
+        appsConfig: { default: configurationsMock.apkWithBinary },
       });
 
       await device.installUtilBinaries();
@@ -602,7 +606,7 @@ describe('Device', () => {
       driverMock.driver.installUtilBinaries.mockRejectedValue(new Error());
 
       const device = await aValidDevice({
-        appsConfig: { '': configurationsMock.apkWithBinary },
+        appsConfig: { default: configurationsMock.apkWithBinary },
       });
 
       await expect(device.installUtilBinaries()).rejects.toThrowError();
@@ -894,7 +898,7 @@ describe('Device', () => {
       ? configurationsMock.appWithAbsoluteBinaryPath
       : configurationsMock.appWithRelativeBinaryPath;
 
-    const device = await aValidDevice({ appsConfig: { '': appConfig } });
+    const device = await aValidDevice({ appsConfig: { default: appConfig } });
     await device.installApp();
 
     return driverMock.driver.installApp.mock.calls[0][1];

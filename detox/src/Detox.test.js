@@ -132,9 +132,7 @@ describe('Detox', () => {
 
       it('should instantiate Device', () =>
         expect(Device).toHaveBeenCalledWith({
-          appsConfig: {
-            '': expect.objectContaining({ binaryPath: expect.any(String) })
-          },
+          appsConfig: detoxConfig.appsConfig,
           behaviorConfig: detoxConfig.behaviorConfig,
           deviceConfig: detoxConfig.deviceConfig,
           emitter: expect.anything(),
@@ -165,7 +163,7 @@ describe('Detox', () => {
         expect(device().prepare).toHaveBeenCalled());
 
       it('should select and reinstall the app', () => {
-        expect(device().selectApp).toHaveBeenCalledWith(''); // '' is a default name for a single app
+        expect(device().selectApp).toHaveBeenCalledWith('default');
         expect(device().uninstallApp).toHaveBeenCalled();
         expect(device().installApp).toHaveBeenCalled();
       });
@@ -201,7 +199,7 @@ describe('Detox', () => {
         expect(detox.device.installApp).toHaveBeenCalledTimes(2);
         expect(detox.device.selectApp).toHaveBeenCalledTimes(3);
 
-        expect(detox.device.selectApp.mock.calls[0]).toEqual(['']);
+        expect(detox.device.selectApp.mock.calls[0]).toEqual(['default']);
         expect(detox.device.selectApp.mock.calls[1]).toEqual(['extraApp']);
         expect(detox.device.selectApp.mock.calls[2]).toEqual([null]);
       });
